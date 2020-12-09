@@ -130,12 +130,12 @@ forecast=fake_forecast()
 #save fake forecast to file
 path = Path(os.getcwd()) 
 csv_path=os.path.join(path.parent,'data','fake_forecast.csv')
-forecast.to_csv(csv_path,header=['polygon_vertices','Beat','Primary_Type','Probability','Primary_Type_per_Beat_tally'])
+forecast.to_csv(csv_path,header=['polygon_vertices','color','Beat','Primary_Type','Probability','Primary_Type_per_Beat_tally'])
 
 
 print('Fake forecast csv file created at %s with shape %s'%(csv_path,str(forecast.shape)))
 
 
-list(forecast['polygon_vertices'])[:]
+#list(forecast['polygon_vertices'])[:]
 """
 

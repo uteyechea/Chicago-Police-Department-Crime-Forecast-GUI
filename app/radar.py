@@ -5,6 +5,7 @@ from dash.dependencies import Input, Output
 import dash_leaflet as dl
 import numpy as np
 import pandas as pd
+import math
 import dash # Use for standalone window server
 
 import os
@@ -18,6 +19,8 @@ import fake_forecast as fk
 
 
 forecast=fk.fake_forecast(number_of_predictions=20) # Switch to read_csv when loading real forecast.
+
+
 
 # Generate map polygons per crime per beat
 overlays={}
@@ -54,13 +57,60 @@ hermosillo_coordinates = (29.0730,-110.9559)
 keys=['Dark','Light']
 url_template=['https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png','https://a.tile.openstreetmap.org/{z}/{x}/{y}.png']
 
-"""
-@app.callback(Output("info", "children"), [Input("map", "click_lat_lng")])
-def info_hover():
-    return get_info()
+#Pending
+test_coordinates=[29.0730,-110.9559]
+def get_beat_from_coordinates(coordinates=test_coordinates,forecast=forecast):
+    vertex_average_coordinates=[]
+    #polygons= list(map(float, forecast['polygon_vertices'])) #[float(i) for i in lst]
+    polygons=forecast['polygon_vertices']
+    for i,vertices in enumerate(polygons):
+        #print(i,vertices,np.average(vertices))
+        vertex_average_coordinate=np.average(vertices)
+        vertex_average_coordinates.append(vertex_average_coordinate)
+    x=list( np.sqrt((vertex_average_coordinates-np.average(coordinates))**2) )
+    #print(x)
+    #print(x.index(min(x)))
+    #print(distances)
+    #avg=np.average(distances,axis=1)
+    #print(min(avg).index())
+    #print(min(distance))
+    beat_index=x.index(min(x)) #more like forecast_index
+    return beat_index
+
+
+#print(forecast.loc[0,'polygon_vertices'][0])
+#beat_index=get_beat_from_coordinates(forecast,forecast.loc[0,'polygon_vertices'][0])
+#print(beat_index,type(beat_index)) 
+#print(forecast.iloc[forecast.index==beat_index,:])
+#print(forecast.loc[forecast.index==beat_index,'probability'].values)
+#print(forecast.loc[forecast.index==beat_index,'primary_type_per_tally'].values[0])
+
+
+# Create info control.
+def get_info(coordinates=[],forecast=forecast):
+    header = [html.H4("Beat")]
+    if not coordinates:
+        return header + ["Click over a colored beat"]
+    #return header + [html.B(feature["properties"]["name"]), html.Br(),
+                     #"{:.3f} people / mi".format(feature["properties"]["density"]), html.Sup("2")]
+    else:
+        beat_index=get_beat_from_coordinates(coordinates,forecast)
+        
+        #return header + [html.Div(children=str(forecast.loc[forecast.index==beat_index,'primary_type_per_tally'].values[0]))]
+        beat_number=forecast.loc[forecast.index==beat_index,'beat'].values[0]
+        beat_primary_type=forecast.loc[forecast.index==beat_index,'primary_type'].values[0]
+        beat_primary_type_crime_tally=forecast.loc[forecast.index==beat_index,'primary_type_per_tally'].values[0]
+        beat_primary_type_probability=forecast.loc[forecast.index==beat_index,'probability'].values[0]
+        info_control_data=[html.H4("Beat {}".format(beat_number)),
+                           html.H5('Primary type: {}'.format(str(beat_primary_type).title())),
+                           html.H5('Crime count {}'.format(beat_primary_type_crime_tally)),
+                           html.H5('Crime probability {:.2f}'.format(beat_primary_type_probability))
+                          ]
+        return info_control_data
+
 """
 # Create info control.
-def get_info(coordinates=None):
+def get_info(coordinates=[]):
     header = [html.H4("Beat")]
     if not coordinates:
         return header + ["Click over a colored beat"]
@@ -68,7 +118,7 @@ def get_info(coordinates=None):
                      #"{:.3f} people / mi".format(feature["properties"]["density"]), html.Sup("2")]
     else:
         return header + [html.Div(children=str(coordinates))]
-                     
+"""
 
 # Create info control.
 info = html.Div(children=get_info(), id="info", className="info",
@@ -124,7 +174,8 @@ app.layout = html.Div(children=[
               [Input("map", "click_lat_lng")])
 def map_click(click_lat_lng):
   #click_lat_lng (list of numbers; optional): Dash callback property. Receives [lat, lng] upon click.
-  coordinates="({:.3f}, {:.3f})".format(click_lat_lng[0],click_lat_lng[1])
+  #coordinates="({:.3f}, {:.3f})".format(click_lat_lng[0],click_lat_lng[1])
+  coordinates=click_lat_lng#[click_lat_lng[0],click_lat_lng[1]]
   #print(type(click_lat_lng)) #python class list
   return get_info(coordinates)
 
